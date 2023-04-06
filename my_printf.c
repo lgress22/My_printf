@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 // binary decimal octal hexadecimal look in to it.
 
@@ -77,6 +78,7 @@ int print_pointer(void* arg) {
 }
 
 
+
 int print_string(char* str){
     int len = 0;
     while(*str != '\0'){
@@ -87,11 +89,23 @@ int print_string(char* str){
     return 0;
 }
 
+
+int handle_c(va_list arglist){
+    int byte_count = 0;
+    char c = va_arg(arglist, int);
+    putchar(c);
+    ++byte_count;
+    return byte_count;
+}
+
+
+
 int my_printf(const char* format, ...) {
     va_list arglist;
     va_start(arglist, format);
 
     int byte_count = 0;
+    
     
     while (*format != '\0') {
         switch(*format) {
@@ -99,9 +113,7 @@ int my_printf(const char* format, ...) {
                 ++format;
                 switch(*format) {
                     case 'c': {
-                        char c = va_arg(arglist, int);
-                        putchar(c);
-                        ++byte_count;
+                        byte_count += handle_c(arglist);
                         break;
                     }
                     case 'd': {
@@ -152,72 +164,73 @@ int my_printf(const char* format, ...) {
                     break;
                 }
 
-                case 'o': {
-                    unsigned int num = va_arg(arglist, unsigned int);
-                    char octal_str[21]; // enough to hold the octal string of a 64-bit integer
-                    int i = 0;
-                    do {
-                        octal_str[i++] = (num % 8) + '0';
-                        num /= 8;
-                    } while (num > 0);
+                    case 'o': {
+                        unsigned int num = va_arg(arglist, unsigned int);
+                        char octal_str[21]; // enough to hold the octal string of a 64-bit integer
+                        int i = 0;
+                        do {
+                            octal_str[i++] = (num % 8) + '0';
+                            num /= 8;
+                        } while (num > 0);
+                            while (i > 0) {
+                            putchar(octal_str[--i]);
+                            ++byte_count;
+                        }
+                        break;
+                    }
+
+                    case 'u': {
+                        unsigned int num = va_arg(arglist, unsigned int);
+                        int len = 0;
+                        if (num == 0) {
+                            len = 1;
+                        }
+                        else {
+                            unsigned int temp = num;
+                            while (temp != 0) {
+                                len++;
+                                temp /= 10;
+                            }
+                        }
+                        char buffer[14] = {0};
+                        int byte_count = 0;
+                        for (int i = len - 1; i >= 0; i--) {
+                            buffer[i] = num % 10 + '0';
+                            num /= 10;
+                            byte_count += sizeof(buffer[i]);
+                        }
+                        buffer[len] = '!'; 
+                        buffer[len+1] = '\n'; 
+                        byte_count += 2; 
+                        for (int i = 0; i < len+2; i++) { 
+                            putchar(buffer[i]);
+                        }
+                        return byte_count;
+                        break;
+                    }
+
+                    case 'x': {
+                        unsigned int num = va_arg(arglist, unsigned int);
+                        char hex_str[9]; // enough to hold the hexadecimal string of a 32-bit integer
+                        int i = 0;
+                        do {
+                            int digit = num % 16;
+                            if (digit < 10) {
+                                hex_str[i++] = digit + '0';
+                            } else {
+                                hex_str[i++] = digit - 10 + 'A';
+                                //hex_str[i++] = digit - 10 + 'a';
+                            }
+                            num /= 16;
+                        } while (num > 0);
                         while (i > 0) {
-                        putchar(octal_str[--i]);
-                        ++byte_count;
-                    }
-                    break;
-                }
-
-                case 'u': {
-                    unsigned int num = va_arg(arglist, unsigned int);
-                    int len = 0;
-                    if (num == 0) {
-                        len = 1;
-                    }
-                    else {
-                        unsigned int temp = num;
-                        while (temp != 0) {
-                            len++;
-                            temp /= 10;
+                            putchar(hex_str[--i]);
+                            ++byte_count;
                         }
+                        break;
                     }
-                    char buffer[14] = {0};
-                    int byte_count = 0;
-                    for (int i = len - 1; i >= 0; i--) {
-                        buffer[i] = num % 10 + '0';
-                        num /= 10;
-                        byte_count += sizeof(buffer[i]);
-                    }
-                    buffer[len] = '!'; 
-                    buffer[len+1] = '\n'; 
-                    byte_count += 2; 
-                    for (int i = 0; i < len+2; i++) { 
-                        putchar(buffer[i]);
-                    }
-                    return byte_count;
-                    break;
-                }
 
-                case 'x': {
-                    unsigned int num = va_arg(arglist, unsigned int);
-                    char hex_str[9]; // enough to hold the hexadecimal string of a 32-bit integer
-                    int i = 0;
-                    do {
-                        int digit = num % 16;
-                        if (digit < 10) {
-                            hex_str[i++] = digit + '0';
-                        } else {
-                            hex_str[i++] = digit - 10 + 'a';
-                        }
-                        num /= 16;
-                    } while (num > 0);
-                    while (i > 0) {
-                        putchar(hex_str[--i]);
-                        ++byte_count;
-                    }
-                    break;
-                }
-
-
+                    
 
                 default:
                     return -1;
