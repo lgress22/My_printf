@@ -4,91 +4,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <stdlib.h>
 
-// binary decimal octal hexadecimal look in to it.
-
-int print_octal(unsigned int arg){
-    int num_printed = 0;
-    if(arg == 0){
-        num_printed += putchar('0');
-    } else {
-        char buf[32] = {0};
-        int i = 0;
-        while(arg != 0){
-            buf[i+1] = '0' + (arg & 7);
-            arg >>= 3;
-        }
-        for (; i > 0; i--){
-            num_printed += putchar(buf[i-1]);
-        }
-    }
-    return num_printed;
-}
-
-
-int print_hex(unsigned int arg){
-    int num_printed = 0;
-    if(arg == 0){
-        num_printed += putchar('0');
-    } else {
-        char buf[32];
-        int i = 0;
-        while(arg != 0){
-            int digit = arg & 15;
-            if(digit < 10){
-                buf[i++] = '0' + digit;
-            } else {
-                buf[i++] = 'a' + digit - 10;
-            }
-            arg >>= 4;
-        }
-        for(; i > 0; i--){
-            num_printed += putchar(buf[i-1]);
-        }
-    }
-    return num_printed;
-}
-
-
-int print_unsigned_decimal(unsigned int arg){
-    int num_printed = 0;
-    if(arg == 0){
-        num_printed += putchar('0');
-    } else {
-        char buf[32];
-        int i = 0;
-        while( arg != 0){
-            buf[i++] = '0' + (arg % 10);
-            arg /= 10;
-        }
-        for (; i > 0; i--){
-            num_printed += putchar(buf[i - 1]);
-        }
-    }
-    return num_printed;
-}
-
-
-int print_pointer(void* arg) {
-    int num_printed = 0;
-    num_printed += putchar('0');
-    num_printed += putchar('x');
-    num_printed += print_hex((uintptr_t)arg);
-    return num_printed;
-}
-
-
-
-int print_string(char* str){
-    int len = 0;
-    while(*str != '\0'){
-        putchar(*str);
-        str++;
-        len++;
-    }
-    return 0;
-}
-
+// int main(){
+//     my_printf("%c\0", c)
+// }
 
 int handle_c(va_list arglist){
     int byte_count = 0;
@@ -151,7 +71,7 @@ int handle_s(va_list arglist){
 int handle_o(va_list arglist){
     int byte_count = 0;
     unsigned int num = va_arg(arglist, unsigned int);
-    char octal_str[21]; // enough to hold the octal string of a 64-bit integer
+    char octal_str[22]; // enough to hold the octal string of a 64-bit integer
     int i = 0;
     do {
         octal_str[i++] = (num % 8) + '0';
@@ -217,44 +137,27 @@ int handle_x(va_list arglist){
 }
 
 int handle_p(va_list arglist) {
-    int byte_count = 0;
-    void *ptr = va_arg(arglist, void *);
-    uintptr_t addr = (uintptr_t)ptr;
-    char buffer[20] = {0};
-    int i = 0;
-    while (addr != 0) {
-        int digit = addr % 16;
-        if (digit < 10) {
-            buffer[i] = digit + '0';
-        } else {
-            buffer[i] = digit - 10 + 'a';
-        }
-        i++;
-        addr /= 16;
+    uintptr_t ptr = va_arg(arglist, uintptr_t);
+    char hex_str[17] = {0}; // enough to hold the hexadecimal string of a 64-bit pointer
+    int i = 16;
+    do {
+        hex_str[--i] = "0123456789abcdef"[ptr & 0xF];
+        ptr >>= 4;
+    } while (ptr);
+    // write the pointer address with the 0x prefix and without leading zeros
+    char output[18] = "0x";
+    int j = 2;
+    while (i < 16) {
+        output[j++] = hex_str[i++];
     }
-    if (i == 0) {
-        buffer[i] = '0';
-        i++;
-    }
-    buffer[i] = 'x';
-    buffer[i+1] = '0';
-    i += 2;
-    for (int j = i-1; j >= 0; j--) {
-        putchar(buffer[j]);
-        byte_count++;
-    }
-    return byte_count;
+    write(STDOUT_FILENO, output, j);
+    return j;
 }
-
-
 
 int my_printf(const char* format, ...) {
     va_list arglist;
     va_start(arglist, format);
-
     int byte_count = 0;
-    
-    
     while (*format != '\0') {
         switch(*format) {
             case '%': {
@@ -267,35 +170,30 @@ int my_printf(const char* format, ...) {
                     case 'd': {
                         byte_count += handle_d(arglist);
                         break;
-                    }
-                    
+                    }   
                     case 's': {
                         byte_count += handle_s(arglist);
                         break;
-                }
-
+                    }
                     case 'o': {
                         byte_count += handle_o(arglist);
                         break;
                     }
-
                     case 'u': {
                         byte_count += handle_u(arglist);
                         break;
                     }
-
                     case 'x': {
                         byte_count += handle_x(arglist);
                         break;
-                    }
-
-                    
-
-                default:
-                    return -1;
+                    }  
+                    case 'p':{
+                        byte_count += handle_p(arglist);
+                        break;
+                    }             
             }
             break;
-        }
+            }
             default: {
                 putchar(*format);
                 ++byte_count;
@@ -308,12 +206,12 @@ int my_printf(const char* format, ...) {
     return byte_count;
 }
 
-
-
 int main(){
-
-my_printf("Hello %s!\n", "QWASAR.IO" );
-my_printf("%c%c%c%c%c\n", "H", "E", "L", "L", "O");
-my_printf("%s\n", "Hello World!");
-my_printf("%c!\n", "H");
+    my_printf("%c%c\n", 'H', 'i' );
+    my_printf("%d\n", 100);
+    my_printf("%s\n", "Hello mister Johndon");
+    my_printf("%u\n", 10);
+    my_printf("%x\n", 25);
+    my_printf("%o\n", 25);
+    my_printf("%p\n", 25);
 }
