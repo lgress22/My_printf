@@ -189,5 +189,5 @@ int my_printf(const char* format, ...) {
 }
 
 int main(){
-     my_printf("the byte count is %p\n", 25);
+    my_printf("%d\n", 25);
 }
