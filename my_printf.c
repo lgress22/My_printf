@@ -1,14 +1,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <unistd.h>
-#include <ctype.h>
-#include <stdlib.h>
 
-// int main(){
-//     my_printf("%c\0", c)
-// }
+typedef int(*handler_func_t)(va_list);
+
+struct format_specifier{
+    char spec;
+    handler_func_t handler;
+};
 
 int handle_c(va_list arglist){
     int byte_count = 0;
@@ -154,64 +154,40 @@ int handle_p(va_list arglist) {
     return j;
 }
 
+static const struct format_specifier format_handlers[] = {
+    {'c', handle_c},
+    {'d', handle_d},
+    {'s', handle_s},
+    {'o', handle_o},
+    {'u', handle_u},
+    {'x', handle_x},
+    {'p', handle_p},
+};
+
 int my_printf(const char* format, ...) {
     va_list arglist;
     va_start(arglist, format);
     int byte_count = 0;
     while (*format != '\0') {
-        switch(*format) {
-            case '%': {
-                ++format;
-                switch(*format) {
-                    case 'c': {
-                        byte_count += handle_c(arglist);
-                        break;
-                    }
-                    case 'd': {
-                        byte_count += handle_d(arglist);
-                        break;
-                    }   
-                    case 's': {
-                        byte_count += handle_s(arglist);
-                        break;
-                    }
-                    case 'o': {
-                        byte_count += handle_o(arglist);
-                        break;
-                    }
-                    case 'u': {
-                        byte_count += handle_u(arglist);
-                        break;
-                    }
-                    case 'x': {
-                        byte_count += handle_x(arglist);
-                        break;
-                    }  
-                    case 'p':{
-                        byte_count += handle_p(arglist);
-                        break;
-                    }             
+        if (*format == '%') {
+            ++format;
+            for (size_t i = 0; i < sizeof(format_handlers) / sizeof(format_handlers[0]); ++i) {
+                if (format_handlers[i].spec == *format) {
+                    byte_count += format_handlers[i].handler(arglist);
+                    break;
+                }
             }
-            break;
-            }
-            default: {
-                putchar(*format);
-                ++byte_count;
-                break;
-            }
+        } else {
+            putchar(*format);
+            ++byte_count;
         }
         ++format;
     }
     va_end(arglist);
     return byte_count;
+    
 }
 
 int main(){
-    my_printf("%c%c\n", 'H', 'i' );
-    my_printf("%d\n", 100);
-    my_printf("%s\n", "Hello mister Johndon");
-    my_printf("%u\n", 10);
-    my_printf("%x\n", 25);
-    my_printf("%o\n", 25);
-    my_printf("%p\n", 25);
+     my_printf("the byte count is %p\n", 25);
 }
