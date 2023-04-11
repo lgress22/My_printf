@@ -2,16 +2,17 @@
 ***
 
 ## Task
-TODO - What is the problem? And where is the challenge?
+The problem is creating a program that works as a custom printf function.
 
 ## Description
-TODO - How have you solved the problem?
+To keep it modular I created multiple functions that are desinged to handle the format specifier d, c, s, u, o, x, p.
+After which I used a struct to hold them in a separate function to then call them in the my_printf function.
 
 ## Installation
-TODO - How to install your project? npm install? make? make re?
+This is for training purposes
 
 ## Usage
-TODO - How does it work?
+This is for training purposes.
 ```
 ./my_project argument1 argument2
 ```
